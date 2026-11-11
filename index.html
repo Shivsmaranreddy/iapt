@@ -1,0 +1,645 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NSEJS Junior Science — Revision Tracker</title>
+<style>
+:root {
+  --bg:#f4f7fb;
+  --card:#fff;
+  --ink:#172033;
+  --muted:#5d687b;
+  --line:#d9e0ea;
+  --accent:#176b57;
+  --accent2:#e7f4ef;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font:15px/1.5 system-ui,Arial,sans-serif;
+}
+header {
+  background:#102c35;
+  color:white;
+  padding:28px 4%;
+}
+header h1 { margin:0 0 6px; }
+header p { color:#d8e8e7; }
+main { max-width:1500px; margin:auto; padding:20px; }
+.notice {
+  background:#fff8e8;
+  border:1px solid #f0d48e;
+  padding:12px;
+  border-radius:12px;
+}
+.toolbar {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  padding:12px;
+  background:white;
+  border:1px solid var(--line);
+  border-radius:12px;
+  margin:16px 0;
+}
+button,.button {
+  padding:9px 12px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:white;
+  cursor:pointer;
+  font-weight:650;
+}
+button.primary {
+  background:var(--accent);
+  color:white;
+}
+input[type=text],input[type=url],textarea,select {
+  width:100%;
+  border:1px solid #cbd4df;
+  border-radius:7px;
+  padding:8px;
+  font:inherit;
+}
+input[type=checkbox] {
+  width:18px;
+  height:18px;
+  accent-color:var(--accent);
+}
+.summary {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin:16px 0;
+}
+.metric {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+}
+.metric b {
+  font-size:1.4rem;
+  display:block;
+}
+.metric span { color:var(--muted); }
+.progress {
+  height:8px;
+  background:#e2e8ef;
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:8px;
+}
+.progress div {
+  height:100%;
+  width:0;
+  background:var(--accent);
+}
+.subject {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:14px;
+  margin:18px 0;
+  overflow:hidden;
+}
+.subject-head {
+  padding:15px;
+  background:#eaf1f4;
+  border-bottom:1px solid var(--line);
+}
+.subject-head h2 { margin:5px 0; }
+.subject-head p { color:var(--muted); }
+.topic {
+  padding:15px;
+  border-bottom:1px solid var(--line);
+}
+.topic h3 { margin:0 0 4px; }
+.detail { color:#465267; }
+.fields {
+  display:grid;
+  grid-template-columns:125px 1.2fr 1fr 1fr;
+  gap:10px;
+}
+.field label {
+  font-size:.78rem;
+  font-weight:750;
+  color:var(--muted);
+  display:block;
+  margin-bottom:4px;
+  text-transform:uppercase;
+}
+.checkline {
+  display:flex;
+  gap:7px;
+  align-items:center;
+  padding:6px 0;
+}
+.small { font-size:.83rem; color:var(--muted); }
+.tag {
+  display:inline-block;
+  background:var(--accent2);
+  color:#155845;
+  padding:2px 8px;
+  border-radius:99px;
+}
+footer { color:var(--muted); padding:20px 0; }
+@media(max-width:850px) {
+  .fields { grid-template-columns:1fr 1fr; }
+  .summary { grid-template-columns:1fr 1fr; }
+}
+@media(max-width:520px) {
+  .fields { grid-template-columns:1fr; }
+}
+@media print {
+  .toolbar,button { display:none!important; }
+  body { background:white; }
+  .subject { break-inside:auto; }
+  .topic { break-inside:avoid; }
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🧪 NSEJS Junior Science Revision Tracker</h1>
+<p>IAPT Junior Science Syllabus — 2022–2023</p>
+<p>Revision tracking | Known topics | PYQs | Formula cheatsheets</p>
+</header>
+
+<main>
+
+<div class="notice">
+<b>Scope:</b> Junior Science syllabus only. Includes the listed Mathematics topics and Junior Science sections. Verify the current examination notice for any syllabus updates.
+</div>
+
+<div class="toolbar">
+<input id="search" type="text" placeholder="Search topics...">
+<select id="subjectFilter">
+<option value="">All sections</option>
+<option>Mathematics</option>
+<option>Chemistry</option>
+<option>Biology</option>
+<option>Physics</option>
+<option>Environment</option>
+<option>Food Production</option>
+</select>
+<button class="primary" onclick="window.print()">Print / Save PDF</button>
+<button onclick="exportProgress()">Export JSON</button>
+<label class="button" for="importFile">Import JSON</label>
+<input id="importFile" type="file" accept=".json" hidden onchange="importProgress(event)">
+<button onclick="resetProgress()">Reset</button>
+</div>
+
+<div class="summary">
+<div class="metric"><span>Total subtopics</span><b id="totalCount">0</b></div>
+<div class="metric"><span>Revised</span><b id="revisedCount">0</b><div class="progress"><div id="revisionBar"></div></div></div>
+<div class="metric"><span>Known</span><b id="knownCount">0</b></div>
+<div class="metric"><span>PYQs recorded</span><b id="pyqCount">0</b></div>
+</div>
+
+<div id="syllabus"></div>
+
+<footer>
+Cheatsheet links: Paste a shareable PDF, Google Drive or notes URL into the relevant subtopic field.
+<br><br>
+Source:
+<a href="https://iapt.org.in/wp-content/uploads/images/syllabus-for-nse-ino-2022-2023.pdf" target="_blank">Official IAPT syllabus PDF</a>
+</footer>
+</main>
+
+<script>
+const sections = [
+{
+subject:"Mathematics",
+title:"Mathematical Topics",
+topics:[
+["Number Systems","Real numbers, rational and irrational numbers, exponents, standard form."],
+["Polynomials","Zeros, relationship between zeros and coefficients, polynomial operations."],
+["Linear Equations","Linear equations in one and two variables, systems and word problems."],
+["Quadratic Equations","Factorisation, quadratic formula, discriminant and applications."],
+["Triangles","Similarity, congruence, Pythagoras theorem and proportionality."],
+["Trigonometry","Ratios, standard angles, identities, heights and distances."],
+["Circles","Tangents, chords and circle theorems."],
+["Surface Areas and Volumes","Areas and volumes of common solids and composite shapes."],
+["Statistics","Mean, median, mode and data interpretation."]
+]
+},
+{
+subject:"Chemistry",
+title:"I. Matter — Nature and Behaviour",
+topics:[
+["Matter and States","Solids, liquids, gases, shape, volume and density."],
+["Changes of State","Melting, freezing, evaporation, condensation and sublimation."],
+["Elements, Compounds and Mixtures","Definitions and distinctions."],
+["Colloids, Suspensions and Solutions","Properties and concentration."],
+["Separation of Mixtures","Methods of separation."],
+["Atoms and Molecules","Particle nature of matter and constant proportions."],
+["Atomic and Molecular Masses","Relative masses and calculations."],
+["Mole Concept","Moles, mass, particles and Avogadro constant."],
+["Structure of Atom","Electrons, protons, neutrons, atomic number and mass number."],
+["Valency and Formulae","Valency and writing chemical formulae."],
+["Isotopes and Isobars","Definitions and examples."]
+]
+},
+{
+subject:"Chemistry",
+title:"II. Chemical Substances — Nature and Behaviour",
+topics:[
+["Chemical Equations","Word equations, symbols and balancing."],
+["Types of Reactions","Combination, decomposition, displacement and double displacement."],
+["Oxidation and Reduction","Basic redox concepts."],
+["Acids, Bases and Salts","Definitions, properties, examples and uses."],
+["pH Scale","pH and everyday importance."],
+["Important Salts","Sodium hydroxide, bleaching powder, baking soda, washing soda and Plaster of Paris."],
+["Metals and Non-metals","Physical and chemical properties."],
+["Reactivity Series","Reactivity and displacement reactions."],
+["Ionic Compounds","Formation and properties."],
+["Metallurgy and Corrosion","Basic extraction processes and corrosion prevention."],
+["Carbon Bonding","Covalent bonds, tetravalency and catenation."],
+["Homologous Series","Functional groups and nomenclature."],
+["Hydrocarbons","Saturated and unsaturated compounds."],
+["Carbon Reactions","Combustion, oxidation, addition and substitution."],
+["Ethanol and Ethanoic Acid","Properties and uses."],
+["Soaps and Detergents","Cleansing action and differences."],
+["History of Periodic Classification","Döbereiner, Newlands and Mendeleev."],
+["Modern Periodic Table","Atomic number, valency and periodic trends."]
+]
+},
+{
+subject:"Biology",
+title:"III. Organization in the Living World",
+topics:[
+["Cell as Basic Unit","Cell theory, prokaryotic and eukaryotic cells."],
+["Cell Membrane and Cell Wall","Structure and functions."],
+["Cell Organelles","Chloroplasts, mitochondria, vacuoles, ER, Golgi apparatus and nucleus."],
+["Chromosomes","Structure and relationship with heredity."],
+["Tissues and Organs","Plant and animal tissues and organisation."],
+["Scientific Naming","Principles of scientific naming."],
+["Classification Hierarchy","Taxonomic categories."],
+["Plant Groups","Bacteria, Thallophyta, Bryophyta, Pteridophyta, Gymnosperms and Angiosperms."],
+["Animal Groups","Non-chordate phyla and chordate classes."],
+["Health and Disease","Infectious and non-infectious diseases."],
+["Microbial Diseases","Viral, bacterial and protozoan diseases."],
+["Disease Prevention","Prevention, treatment and Pulse Polio programme."]
+]
+},
+{
+subject:"Biology",
+title:"IV. Life Processes",
+topics:[
+["Nutrition","Nutrition in plants and animals."],
+["Respiration","Respiration in plants and animals."],
+["Transport","Transport of substances."],
+["Excretion","Removal of wastes."],
+["Tropic Movements","Plant responses to stimuli."],
+["Plant Hormones","Functions of plant hormones."],
+["Nervous System","Basic organisation in animals."],
+["Reflex Actions","Voluntary, involuntary and reflex actions."],
+["Hormonal Coordination","Chemical coordination and hormones."],
+["Reproduction","Asexual and sexual reproduction."],
+["Reproductive Health","Family planning and reproductive health."],
+["Safe Sex and HIV/AIDS","Awareness and basic understanding."],
+["Child Bearing and Women's Health","Basic concepts."],
+["Heredity and Variation","Mendel's contribution and inheritance."],
+["Sex Determination","Basic introduction."],
+["Evolution","Basic concepts of biological evolution."]
+]
+},
+{
+subject:"Physics",
+title:"V. Motion, Force and Work",
+topics:[
+["Distance and Displacement","Definitions and differences."],
+["Velocity and Motion","Uniform and non-uniform motion."],
+["Acceleration","Meaning, units and calculations."],
+["Motion Graphs","Distance-time and velocity-time graphs."],
+["Equations of Motion","Graphical derivation and numerical applications."],
+["Circular Motion","Uniform circular motion."],
+["Newton's Laws","Three laws of motion."],
+["Inertia and Mass","Inertia and its relationship with mass."],
+["Momentum","Momentum, force and conservation."],
+["Universal Gravitation","Law and applications."],
+["Gravity and Free Fall","Acceleration due to gravity."],
+["Mass and Weight","Differences and calculations."],
+["Thrust and Pressure","Definitions and applications."],
+["Floatation","Archimedes' principle, buoyancy and relative density."],
+["Work, Energy and Power","Kinetic and potential energy."],
+["Conservation of Energy","Law and applications."],
+["Sound","Nature and propagation."],
+["Speed of Sound","Hearing range and sound speed."],
+["Reflection of Sound","Echoes."],
+["Ultrasound and SONAR","Principle and applications."],
+["Human Ear","Structure and function."]
+]
+},
+{
+subject:"Physics",
+title:"VI. Effects of Current",
+topics:[
+["Electric Current","Current, symbols and units."],
+["Potential Difference","Voltage and measurement."],
+["Ohm's Law","V-I relationship and graphs."],
+["Resistance and Resistivity","Factors affecting resistance."],
+["Series Circuits","Equivalent resistance."],
+["Parallel Circuits","Equivalent resistance."],
+["Heating Effect","Joule heating."],
+["Electric Power","Power and electrical energy calculations."],
+["Magnetic Field","Magnetic field and field lines."],
+["Field Due to Current","Conductor, coil and solenoid."],
+["Magnetic Force","Force on current-carrying conductor."],
+["Fleming's Left-hand Rule","Direction of magnetic force."],
+["Electric Motor","Principle and working."],
+["Electromagnetic Induction","Induced current and voltage."],
+["Fleming's Right-hand Rule","Direction of induced current."],
+["Electric Generator","Basic principle and operation."],
+["AC and DC","Differences and frequency."],
+["Domestic Circuits","Live, neutral, earth, fuse and MCB."]
+]
+},
+{
+subject:"Physics",
+title:"VII. Light",
+topics:[
+["Spherical Mirrors","Reflection by curved mirrors."],
+["Mirror Terminology","Centre of curvature, principal axis and focus."],
+["Mirror Formula","Formula and magnification."],
+["Refraction","Laws and refractive index."],
+["Spherical Lenses","Ray diagrams and image formation."],
+["Lens Formula","Formula and magnification."],
+["Power of Lens","Definition and unit."],
+["Human Eye","Structure and image formation."],
+["Defects of Vision","Correction of common defects."],
+["Optical Applications","Uses of mirrors and lenses."],
+["Prism and Dispersion","Splitting white light."],
+["Scattering","Scattering of light."]
+]
+},
+{
+subject:"Environment",
+title:"VIII. Our Environment",
+topics:[
+["Air as a Resource","Respiration, combustion and temperature moderation."],
+["Movement of Air and Rainfall","Role in rainfall across India."],
+["Air Pollution","Causes and effects."],
+["Water Pollution","Causes and effects."],
+["Soil Pollution","Causes and effects."],
+["Ozone Layer","Depletion and damage."],
+["Water Cycle","Major stages."],
+["Oxygen Cycle","Movement of oxygen."],
+["Carbon Cycle","Photosynthesis and respiration."],
+["Nitrogen Cycle","Major stages."]
+]
+},
+{
+subject:"Environment",
+title:"IX. Natural Resources",
+topics:[
+["Forms of Energy","Different forms and sources."],
+["Conventional and Non-conventional Energy","Classification."],
+["Fossil Fuels","Coal and petroleum."],
+["Solar Energy and Biogas","Principles and uses."],
+["Wind, Water and Tidal Energy","Generation and applications."],
+["Nuclear Energy","Principle, risks and limitations."],
+["Renewable and Non-renewable Energy","Comparison."],
+["Ecosystem","Components and interactions."],
+["Environmental Problems","Ozone depletion and environmental issues."],
+["Waste Management","Reduction, reuse, recycling and disposal."],
+["Biodegradable and Non-biodegradable","Differences and effects."],
+["Conservation","Sustainable resource use."],
+["Forests and Wildlife","Importance and conservation."],
+["Coal and Petroleum Conservation","Need and methods."],
+["Community Conservation","People's participation."],
+["Big Dams","Benefits and limitations."],
+["Water Harvesting","Methods and benefits."],
+["Resource Sustainability","Long-term management."]
+]
+},
+{
+subject:"Food Production",
+title:"X. Food Production",
+topics:[
+["Plant Breeding","Selection and quality improvement."],
+["Animal Breeding","Selection and management."],
+["Fertilizers and Manures","Uses and differences."],
+["Pest and Disease Protection","Crop protection."],
+["Organic Farming","Principles and practices."]
+]
+}
+];
+
+const root = document.getElementById("syllabus");
+const storageKey = "nsejs_tracker_v1";
+let saved = {};
+try {
+  saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+} catch(e) {}
+
+let counter = 0;
+
+sections.forEach(section => {
+  const sectionEl = document.createElement("section");
+  sectionEl.className = "subject";
+  sectionEl.dataset.subject = section.subject;
+
+  sectionEl.innerHTML = `
+    <div class="subject-head">
+      <span class="tag">${section.subject}</span>
+      <h2>${section.title}</h2>
+    </div>
+  `;
+
+  section.topics.forEach(topic => {
+    const id = "topic_" + counter++;
+    const data = saved[id] || {};
+
+    const article = document.createElement("article");
+    article.className = "topic";
+
+    article.dataset.search =
+      (section.subject + " " + topic.join(" ")).toLowerCase();
+
+    article.innerHTML = `
+      <h3>${topic[0]}</h3>
+      <p class="detail">${topic[1]}</p>
+
+      <div class="fields">
+
+        <div class="field">
+          <label>Revision</label>
+          <div class="checkline">
+            <input type="checkbox" data-id="${id}"
+              data-field="revised" ${data.revised ? "checked" : ""}>
+            Revised
+          </div>
+          <div class="checkline">
+            <input type="checkbox" data-id="${id}"
+              data-field="reviseAgain" ${data.reviseAgain ? "checked" : ""}>
+            Revise Again
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Known Topics / Notes</label>
+          <textarea rows="2"
+            data-id="${id}" data-field="knownNotes"
+            placeholder="Strengths, weak points, doubts...">${data.knownNotes || ""}</textarea>
+          <div class="checkline">
+            <input type="checkbox" data-id="${id}"
+              data-field="known" ${data.known ? "checked" : ""}>
+            Know Confidently
+          </div>
+        </div>
+
+        <div class="field">
+          <label>PYQ Practice</label>
+          <textarea rows="2"
+            data-id="${id}" data-field="pyq"
+            placeholder="Year, paper, question numbers, score...">${data.pyq || ""}</textarea>
+        </div>
+
+        <div class="field">
+          <label>Formula / Cheatsheet Link</label>
+          <input type="url" data-id="${id}"
+            data-field="cheat"
+            placeholder="Paste shareable URL"
+            value="${data.cheat || ""}">
+          <p class="small">Paste your PDF or Drive link.</p>
+        </div>
+
+      </div>
+    `;
+
+    sectionEl.appendChild(article);
+  });
+
+  root.appendChild(sectionEl);
+});
+
+function saveField(element) {
+  const id = element.dataset.id;
+  const field = element.dataset.field;
+
+  saved[id] = saved[id] || {};
+
+  saved[id][field] =
+    element.type === "checkbox"
+      ? element.checked
+      : element.value;
+
+  localStorage.setItem(storageKey, JSON.stringify(saved));
+  updateSummary();
+}
+
+document.querySelectorAll("[data-id]").forEach(element => {
+  element.addEventListener("input", () => saveField(element));
+});
+
+function updateSummary() {
+  const ids = [...new Set(
+    [...document.querySelectorAll("[data-id]")]
+      .map(element => element.dataset.id)
+  )];
+
+  let revised = 0;
+  let known = 0;
+  let pyq = 0;
+
+  ids.forEach(id => {
+    const data = saved[id] || {};
+
+    if(data.revised) revised++;
+    if(data.known) known++;
+    if((data.pyq || "").trim()) pyq++;
+  });
+
+  document.getElementById("totalCount").textContent = ids.length;
+  document.getElementById("revisedCount").textContent = revised;
+  document.getElementById("knownCount").textContent = known;
+  document.getElementById("pyqCount").textContent = pyq;
+
+  document.getElementById("revisionBar").style.width =
+    (ids.length ? revised / ids.length * 100 : 0) + "%";
+}
+
+function filterTopics() {
+  const query = document.getElementById("search")
+    .value.toLowerCase().trim();
+
+  const subject = document.getElementById("subjectFilter").value;
+
+  document.querySelectorAll(".subject").forEach(section => {
+    let visible = 0;
+
+    section.querySelectorAll(".topic").forEach(topic => {
+      const matches =
+        (!query || topic.dataset.search.includes(query)) &&
+        (!subject || section.dataset.subject === subject);
+
+      topic.hidden = !matches;
+      if(matches) visible++;
+    });
+
+    section.hidden = visible === 0;
+  });
+}
+
+document.getElementById("search")
+  .addEventListener("input", filterTopics);
+
+document.getElementById("subjectFilter")
+  .addEventListener("change", filterTopics);
+
+function exportProgress() {
+  const data = {
+    schema: "nsejs_tracker_v1",
+    progress: saved
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    {type:"application/json"}
+  );
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "nsejs-progress.json";
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+function importProgress(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      saved = data.progress || data;
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+      location.reload();
+    } catch(e) {
+      alert("Invalid progress JSON file.");
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+function resetProgress() {
+  if(!confirm("Delete all saved revision progress?")) return;
+
+  saved = {};
+  localStorage.removeItem(storageKey);
+  location.reload();
+}
+
+updateSummary();
+</script>
+</body>
+</html>
